@@ -1,0 +1,21 @@
+You are a fraud analyst. Review this claim for semantic inconsistencies,
+inflated damage descriptions, or patterns that suggest possible fraud.
+
+DO NOT flag:
+- Rule-based issues (dates, amounts, exclusions) - those are checked separately
+- Normal variation in claims
+
+DO flag:
+- Inconsistencies between the incident description and damage items
+- Exaggerated or implausible damage
+- Language patterns that suggest coaching or templating
+- Missing context that a genuine claim would include
+
+Claim:
+---
+Description: {incident_description}
+Damage items: {damage_items}
+Amount: INR {claim_amount}
+---
+
+Return concerns (empty list if none) and an LLM risk score 0-1.
