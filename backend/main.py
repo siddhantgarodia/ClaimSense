@@ -16,7 +16,7 @@ from uuid import uuid4
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pypdf import PdfReader
 
 from config import BASE_DIR, CHUNK_SIZE, LLM_MODEL, MAX_PDF_CHARS, MAX_PDF_PAGES, POLICY_DOCS_PATH, POLICY_UPLOAD_PATH
@@ -29,10 +29,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="ClaimSense API", version="1.0.0")
 
-# Serve sample claim PDFs so the test-cases UI can submit them directly
 _samples_dir = BASE_DIR / "data" / "sample_claims"
-if _samples_dir.exists():
-    app.mount("/samples", StaticFiles(directory=str(_samples_dir)), name="samples")
 
 _executor = ThreadPoolExecutor(max_workers=2)
 PIPELINE_TIMEOUT = 55  # seconds — stays under typical 60s proxy timeout
@@ -111,6 +108,17 @@ def list_policies():
         for k, v in sorted(_policy_text.items())
     ]
     return {"policies": policies}
+
+
+@app.get("/samples/{filename}")
+def get_sample_claim(filename: str):
+    """Serve a sample claim PDF for the Test Cases UI."""
+    if not filename.endswith(".pdf") or "/" in filename or "\\" in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename.")
+    path = _samples_dir / filename
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"Sample not found: {filename}")
+    return FileResponse(str(path), media_type="application/pdf", filename=filename)
 
 
 @app.post("/upload-policy")
