@@ -19,7 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pypdf import PdfReader
 
-from config import BASE_DIR, LLM_MODEL, MAX_PDF_CHARS, MAX_PDF_PAGES, POLICY_DOCS_PATH
+from config import BASE_DIR, LLM_MODEL, MAX_PDF_CHARS, MAX_PDF_PAGES, POLICY_DOCS_PATH, POLICY_UPLOAD_PATH
 from graph import run_claim_pipeline
 from rag.ingest_policies import ingest_all_policies, ingest_single_policy
 from schemas.claim import ClaimProcessingResult
@@ -43,6 +43,7 @@ CORS_ORIGINS = ["http://localhost:5173", "http://localhost:3000"] + _extra_origi
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -140,7 +141,9 @@ async def upload_policy(
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail="File too large (max 10 MB).")
 
-    save_path = Path(POLICY_DOCS_PATH) / f"{policy_type}_policy.pdf"
+    upload_dir = Path(POLICY_UPLOAD_PATH)
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    save_path = upload_dir / f"{policy_type}_policy.pdf"
     save_path.write_bytes(content)
     logger.info(f"Saved policy PDF to {save_path}")
 
