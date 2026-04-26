@@ -19,7 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pypdf import PdfReader
 
-from config import BASE_DIR, LLM_MODEL, MAX_PDF_CHARS, MAX_PDF_PAGES, POLICY_DOCS_PATH, POLICY_UPLOAD_PATH
+from config import BASE_DIR, CHUNK_SIZE, LLM_MODEL, MAX_PDF_CHARS, MAX_PDF_PAGES, POLICY_DOCS_PATH, POLICY_UPLOAD_PATH
 from graph import run_claim_pipeline
 from rag.ingest_policies import ingest_all_policies, ingest_single_policy
 from schemas.claim import ClaimProcessingResult
@@ -100,29 +100,17 @@ def health():
 @app.get("/policies")
 def list_policies():
     """Return each ingested policy type with its chunk count and source file."""
-    try:
-        from rag.retriever import _get_vectorstore
-        vs = _get_vectorstore()
-        data = vs._collection.get(include=["metadatas"])
-        counts: dict[str, int] = {}
-        sources: dict[str, str] = {}
-        for meta in (data.get("metadatas") or []):
-            pt = meta.get("policy_type", "unknown")
-            counts[pt] = counts.get(pt, 0) + 1
-            sources.setdefault(pt, meta.get("source_file", f"{pt}_policy.pdf"))
-        policies = [
-            {
-                "type": k,
-                "chunks": counts[k],
-                "source_file": sources[k],
-                "icon": POLICY_TYPE_ICONS.get(k, "📋"),
-            }
-            for k in sorted(counts)
-        ]
-        return {"policies": policies}
-    except Exception as e:
-        logger.error(f"Error listing policies: {e}")
-        return {"policies": []}
+    from rag.ingest_policies import _policy_text
+    policies = [
+        {
+            "type": k,
+            "chunks": max(1, len(v) // CHUNK_SIZE),
+            "source_file": f"{k}_policy.pdf",
+            "icon": POLICY_TYPE_ICONS.get(k, "📋"),
+        }
+        for k, v in sorted(_policy_text.items())
+    ]
+    return {"policies": policies}
 
 
 @app.post("/upload-policy")

@@ -8,14 +8,10 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 LLM_MODEL = "llama-3.3-70b-versatile"
 LLM_TEMPERATURE = 0.1
 
-EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
-
 BASE_DIR = Path(__file__).parent
 
 # On Vercel only /tmp is writable; locally use the project directory.
 _on_vercel = bool(os.getenv("VERCEL"))
-CHROMA_DB_PATH = os.getenv("CHROMA_DB_PATH", "/tmp/chroma_db" if _on_vercel else str(BASE_DIR / "chroma_db"))
-CHROMA_COLLECTION_NAME = "policies"
 # Source policy PDFs (shipped in repo). Uploaded replacements go to /tmp on Vercel.
 POLICY_DOCS_PATH = str(BASE_DIR / "data" / "sample_policies")
 POLICY_UPLOAD_PATH = os.getenv("POLICY_UPLOAD_PATH", "/tmp/policies" if _on_vercel else str(BASE_DIR / "data" / "sample_policies"))
